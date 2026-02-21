@@ -121,37 +121,72 @@ let angebotNr=`Markovic2025-${String(angebotCounter).padStart(4,"0")}`;
 angebotCounter++;
 
 doc.setTextColor(226,0,116);
-doc.setFontSize(18);
-doc.text("LARI Angebot",20,20);
+doc.setFontSize(22);
+doc.text("LARI", 20, 20);
+
 doc.setFontSize(12);
 doc.setTextColor(0,0,0);
-doc.text("Angebotsnummer: "+angebotNr,20,30);
-doc.text("Firma: "+firma,20,40);
-doc.text("Ansprechpartner: "+kunde,20,50);
-doc.text("Berater: "+currentUser.name,20,60);
 
-let y=80;
-let rabatt=document.getElementById("rabatt")?.value||0;
+doc.text("Leistungsbasiertes Angebot", 20, 30);
+
+doc.text("Angebotsnummer: " + angebotNr, 20, 40);
+doc.text("Datum: " + new Date().toLocaleDateString("de-AT"), 20, 47);
+
+doc.text("Firma: " + firma, 20, 60);
+doc.text("Ansprechperson: " + kunde, 20, 67);
+doc.text("Berater: " + currentUser.name, 20, 74);
+
+let y = 95;
+
+doc.setFontSize(13);
+doc.text("Sehr geehrte/r " + kunde + ",", 20, y);
+y += 10;
+
+doc.setFontSize(12);
+doc.text("vielen Dank für Ihre Anfrage. Gerne übermitteln wir Ihnen folgendes individuelles Angebot:", 20, y, { maxWidth: 170 });
+y += 15;
 
 document.querySelectorAll(".rufnummer").forEach((input,index)=>{
-let nummer=input.value;
-let tarifKey=document.querySelectorAll(".tarif")[index].value;
-let tarif=tarife[tarifKey];
-let price=tarif.price;
-if(currentUser.role==="Save Desk"&&rabatt>0){
-price=price*(1-rabatt/100);
-}
-doc.text("Rufnummer: "+nummer,20,y);y+=10;
-doc.text("Tarif: "+tarifKey,20,y);y+=10;
-doc.text("Geschwindigkeit: "+tarif.speed,20,y);y+=10;
-doc.text(tarif.eu,20,y);y+=10;
-doc.text(tarif.minutes,20,y);y+=10;
-doc.text("Preis: "+price.toFixed(2)+" € netto",20,y);y+=15;
+    let nummer=input.value;
+    let tarifKey=document.querySelectorAll(".tarif")[index].value;
+    let tarifData=tarife[tarifKey];
+    let price=tarifData.price;
+
+    if(currentUser.role==="Save Desk" && rabatt>0){
+        price=price*(1-rabatt/100);
+    }
+
+    y+=5;
+    doc.setFontSize(12);
+    doc.text("Rufnummer: " + nummer, 20, y);
+    y+=8;
+    doc.text("Tarif: " + tarifKey, 25, y);
+    y+=8;
+    doc.text("Geschwindigkeit: " + tarifData.speed, 25, y);
+    y+=8;
+    doc.text(tarifData.eu, 25, y);
+    y+=8;
+    doc.text(tarifData.minutes, 25, y);
+    y+=8;
+    doc.text("Monatlicher Preis: " + price.toFixed(2) + " € netto", 25, y);
+    y+=12;
 });
 
-doc.save(angebotNr+".pdf");
-}
-</script>
+y+=5;
 
-</body>
-</html>
+doc.setFontSize(11);
+doc.text("Alle Preise verstehen sich als Netto-Preise exkl. gesetzlicher USt.", 20, y, { maxWidth:170 });
+
+y+=20;
+
+doc.text("Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.", 20, y);
+y+=15;
+
+doc.text("Mit freundlichen Grüßen", 20, y);
+y+=8;
+
+doc.text(currentUser.name, 20, y);
+y+=8;
+
+doc.setTextColor(226,0,116);
+doc.text("Magenta Business", 20, y);
