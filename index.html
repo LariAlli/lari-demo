@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LARI – Angebotsplattform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body { font-family: Arial, sans-serif; background:#f6f7fb; margin:0; }
+.app { max-width:900px; margin:auto; padding:40px 20px; }
+h1,h2 { color:#E20074; }
+.card { background:white; padding:30px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08);}
+.center{text-align:center;}
+input,select{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:1px solid #ccc;}
+button{padding:12px 20px;background:#E20074;color:white;border:none;border-radius:6px;margin-top:10px;cursor:pointer;}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;}
+.hidden{display:none;}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<div id="loginScreen" class="card center">
+<h1>LARI</h1>
+<p>Leistungsbasierter Angebots- & Rufnummern-Integrator</p>
+<input type="text" id="username" placeholder="Username">
+<input type="password" id="password" placeholder="Passwort">
+<button onclick="login()">Login</button>
+<p style="font-size:12px;color:#666;">
+vse_user / 1234<br>
+save_user / 1234<br>
+neu_user / 1234
+</p>
+</div>
+
+<div id="dashboard" class="hidden">
+<header>
+<h2>LARI</h2>
+<span id="userInfo"></span>
+<button onclick="logout()" style="background:#333;">Logout</button>
+</header>
+
+<div class="card">
+<input type="text" id="firma" placeholder="Firmenname">
+<input type="text" id="kundeAnsprechpartner" placeholder="Ansprechpartner Kunde">
+
+<div id="specialFields"></div>
+
+<div id="rufnummerContainer"></div>
+<button onclick="addRufnummer()">+ Rufnummer hinzufügen</button>
+
+<button onclick="generatePDF()" style="margin-top:30px;">Angebot als PDF generieren</button>
+</div>
+</div>
+
+</div>
+
+<script>
+const users={
+"vse_user":{password:"1234",role:"VSE",name:"VSE Mitarbeiter"},
+"save_user":{password:"1234",role:"Save Desk",name:"Save Desk Mitarbeiter"},
+"neu_user":{password:"1234",role:"Neukunden",name:"Neukunden Mitarbeiter"}
+};
+
+let currentUser=null;
+let angebotCounter=1;
+
+const tarife={
+"S24":{price:23.90,speed:"250/50 Mbit",eu:"50 GB EU",minutes:"150 Min / 150 SMS"},
+"M24":{price:35.90,speed:"350/100 Mbit",eu:"80 GB EU",minutes:"600 Min / 600 SMS"},
+"L24":{price:57.90,speed:"500/100 Mbit",eu:"140 GB EU",minutes:"800 Min / 800 SMS + 200 Weltweit"},
+"S36":{price:19.12,speed:"250/50 Mbit",eu:"50 GB EU",minutes:"150 Min / 150 SMS"},
+"M36":{price:28.72,speed:"350/100 Mbit",eu:"80 GB EU",minutes:"600 Min / 600 SMS"},
+"L36":{price:46.32,speed:"500/100 Mbit",eu:"140 GB EU",minutes:"800 Min / 800 SMS + 200 Weltweit"}
+};
+
+function login(){
+let u=document.getElementById("username").value;
+let p=document.getElementById("password").value;
+if(users[u]&&users[u].password===p){
+currentUser=users[u];
+document.getElementById("loginScreen").classList.add("hidden");
+document.getElementById("dashboard").classList.remove("hidden");
+document.getElementById("userInfo").innerText=currentUser.name+" ("+currentUser.role+")";
+setupSpecialFields();
+}else{alert("Login fehlgeschlagen");}
+}
+
+function logout(){location.reload();}
+
+function setupSpecialFields(){
+let container=document.getElementById("specialFields");
+container.innerHTML="";
+if(currentUser.role==="Save Desk"){
+container.innerHTML=`<input type="number" id="rabatt" placeholder="Treuerabatt in %" min="0" max="100">`;
+}
+if(currentUser.role==="Neukunden"){
+container.innerHTML=`<input type="number" id="freimonate" placeholder="Freimonate (0-6)" min="0" max="6">`;
+}
+}
+
+function addRufnummer(){
+let container=document.getElementById("rufnummerContainer");
+let div=document.createElement("div");
+div.innerHTML=`
+<input type="text" placeholder="Rufnummer" class="rufnummer">
+<select class="tarif">
+${Object.keys(tarife).map(t=>`<option value="${t}">${t}</option>`).join("")}
+</select>`;
+container.appendChild(div);
+}
+
+async function generatePDF(){
+const {jsPDF}=window.jspdf;
+let doc=new jsPDF();
+let firma=document.getElementById("firma").value;
+let kunde=document.getElementById("kundeAnsprechpartner").value;
+let angebotNr=`Markovic2025-${String(angebotCounter).padStart(4,"0")}`;
+angebotCounter++;
+
+doc.setTextColor(226,0,116);
+doc.setFontSize(18);
+doc.text("LARI Angebot",20,20);
+doc.setFontSize(12);
+doc.setTextColor(0,0,0);
+doc.text("Angebotsnummer: "+angebotNr,20,30);
+doc.text("Firma: "+firma,20,40);
+doc.text("Ansprechpartner: "+kunde,20,50);
+doc.text("Berater: "+currentUser.name,20,60);
+
+let y=80;
+let rabatt=document.getElementById("rabatt")?.value||0;
+
+document.querySelectorAll(".rufnummer").forEach((input,index)=>{
+let nummer=input.value;
+let tarifKey=document.querySelectorAll(".tarif")[index].value;
+let tarif=tarife[tarifKey];
+let price=tarif.price;
+if(currentUser.role==="Save Desk"&&rabatt>0){
+price=price*(1-rabatt/100);
+}
+doc.text("Rufnummer: "+nummer,20,y);y+=10;
+doc.text("Tarif: "+tarifKey,20,y);y+=10;
+doc.text("Geschwindigkeit: "+tarif.speed,20,y);y+=10;
+doc.text(tarif.eu,20,y);y+=10;
+doc.text(tarif.minutes,20,y);y+=10;
+doc.text("Preis: "+price.toFixed(2)+" € netto",20,y);y+=15;
+});
+
+doc.save(angebotNr+".pdf");
+}
+</script>
+
+</body>
+</html>
